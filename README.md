@@ -161,14 +161,11 @@ WORM| THIN_WORM| FILL| DROP| SWAP
 
 ## Changelog
 
-**2.4.2**
-* Added `bounce` property to the plugin and the Pod. Thanks to @sitefinitysteve.
-
 **2.4.1**
 * Fixed an issue on iOS when updating `Items` binding, would not refresh Carousel-view.
 
 **2.4.0**
-* Added new event, 'pageScrolling'. Thanks to @sitefinitysteve!
+* Added new event, 'pageScrolling'. Thanks @sitefinitysteve!
 * Updated gradle for 'PageIndicatorView' to version 0.1.2
 * Updated package.json with 'plugin' metadata to comply with the upcomming 3.0 plugin standard
 * Potential fix for `ViewPager.populate` exception on Android.

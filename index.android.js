@@ -1,37 +1,49 @@
 "use strict";
+var dObservable = require("ui/core/dependency-observable");
 var observableArray = require("data/observable-array");
 var Platform = require('platform');
 var absolute_layout = require('ui/layouts/absolute-layout');
 var grid_layout = require('ui/layouts/grid-layout');
 var stack_layout = require('ui/layouts/stack-layout');
 var colorModule = require('color');
+var repeaterModule = require("ui/repeater");
 var weakEvents = require("ui/core/weak-event-listener");
 var types = require("utils/types");
 var builder = require("ui/builder");
-var viewModule = require("tns-core-modules/ui/core/view");
+var proxy = require("ui/core/proxy");
+var viewModule = require("ui/core/view");
 var knownTemplates;
 (function (knownTemplates) {
     knownTemplates.itemTemplate = "itemTemplate";
 })(knownTemplates = exports.knownTemplates || (exports.knownTemplates = {}));
+function onItemsPropertyChanged(data) {
+    var carousel = data.object;
+    carousel._onItemsPropertyChanged(data);
+}
+function onItemTemplatePropertyChanged(data) {
+    var carousel = data.object;
+    carousel._onItemTemplatePropertyChanged(data);
+}
 
 var CarouselItem = (function (_super) {
     __extends(CarouselItem, _super);
     function CarouselItem() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        _super.apply(this, arguments);
     }
     return CarouselItem;
 }(stack_layout.StackLayout));
 exports.CarouselItem = CarouselItem;
+
+
 var Carousel = (function (_super) {
     __extends(Carousel, _super);
     function Carousel() {
-        //_super.call(this);
+        _super.call(this);
         this._androidViewId = -1;
         this._indicatorViewId = -1;
-        return _super !== null && _super.apply(this, arguments) || this;
     }
    
-    Carousel.prototype.createNativeView = function () {
+    Carousel.prototype._createUI = function () {
         if (this._androidViewId < 0) {
             this._androidViewId = android.view.View.generateViewId();
         }
@@ -50,8 +62,6 @@ var Carousel = (function (_super) {
         
         ensureCarouselPageChangedListenerClass();
         this._viewPager.setOnPageChangeListener(new CarouselPageChangedListenerClass(this));
-
-        return this._viewPager;
     };
     Carousel.prototype.onLoaded = function () {
         if(this._enableIndicator !== false){
@@ -90,9 +100,6 @@ var Carousel = (function (_super) {
         this._viewPager.setCurrentItem(this.selectedPage, false);
         _super.prototype.onLoaded.call(this);
     };
-    Carousel.prototype.initNativeView = function () {
-        this.refresh();
-    };
     Carousel.prototype.constructView = function () { };
     Carousel.prototype.refresh = function () {
         if (types.isNullOrUndefined(this.items) || !types.isNumber(this.items.length))
@@ -126,23 +133,11 @@ var Carousel = (function (_super) {
     Carousel.prototype._onItemTemplatePropertyChanged = function (data) {
         this._requestRefresh();
     };
-    Carousel.prototype._onIndicatorColorChaged = function(data) {
-        if(!this._pageIndicatorView) return;
-        
-        if(data.indicatorColor){
-            this._indicatorColor = data.indicatorColor;
-            var droidColor = new colorModule.Color(data.indicatorColor).android;
-            this._pageIndicatorView.setSelectedColor(droidColor);
-        }
-
-        if(data.indicatorColorUnselected){
-            this._indicatorColorUnselected = data.indicatorColorUnselected;
-            var droidColor = new colorModule.Color(data.indicatorColorUnselected).android;
-            this._pageIndicatorView.setUnselectedColor(droidColor);
-        }
-    }
     Carousel.prototype._onItemsChanged = function (data) {
-        this.refresh();
+        var adapter = this._viewPager.getAdapter();
+        adapter.notifyDataSetChanged();
+        this._pageIndicatorView.setCount(this.items.length);
+        console.log("ItemsChanged");
     };
     Carousel.prototype.onLayout = function (left, top, right, bottom) {
         viewModule.View.layoutChild(this, this, 0, 0, right - left, bottom - top);
@@ -152,6 +147,27 @@ var Carousel = (function (_super) {
             this.refresh();
         }
     };
+    
+    Object.defineProperty(Carousel.prototype, "items", {
+        get: function () {
+            return this._getValue(Carousel.itemsProperty);
+        },
+        set: function (value) {
+            this._setValue(Carousel.itemsProperty, value);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Carousel.prototype, "itemTemplate", {
+        get: function () {
+            return this._getValue(Carousel.itemTemplateProperty);
+        },
+        set: function (value) {
+            this._setValue(Carousel.itemTemplateProperty, value);
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Carousel.prototype, "android", {
         get: function () {
             return this._viewPager;
@@ -166,29 +182,42 @@ var Carousel = (function (_super) {
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Carousel.prototype, "nativeView", {
+    Object.defineProperty(Carousel.prototype, "pageWidth", {
         get: function () {
-            return this._viewPager;
+            return Platform.screen.mainScreen.widthDIPs;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Carousel.prototype, "showIndicator", {
+        set: function (value) {
+            this._enableIndicator = value;
+        },
+        get: function () {
+            return this._enableIndicator;
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(Carousel.prototype, "indicatorColor", {
-        get: function () {
-            return this._getValue(Carousel.indicatorColorProperty);
-        },
         set: function (value) {
-            this._setValue(Carousel.indicatorColorProperty, value);
+            if(!value) return;
+            this._indicatorColor = value;
+            var droidColor = new colorModule.Color(value).android;
+            if(this._pageIndicatorView){
+                this._pageIndicatorView.setSelectedColor(droidColor);
+            }
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(Carousel.prototype, "indicatorColorUnselected", {
-        get: function () {
-            return this._getValue(Carousel.indicatorColorUnselectedProperty);
-        },
         set: function (value) {
-            this._setValue(Carousel.indicatorColorUnselectedProperty, value);
+            if(!value) return;
+            this._indicatorColorUnselected = value;
+            var droidColor = new colorModule.Color(value).android;
+            if(this._pageIndicatorView)
+                this._pageIndicatorView.setUnselectedColor(droidColor);
         },
         enumerable: true,
         configurable: true
@@ -305,127 +334,23 @@ var Carousel = (function (_super) {
         enumerable: true,
         configurable: true
     });
-
-    Object.defineProperty(Carousel.prototype, "items", {
-        get: function () {
-            return this._getValue(Carousel.itemsProperty);
-        },
-        set: function (value) {
-            this._setValue(Carousel.itemsProperty, value);
-        },
-        enumerable: true,
-        configurable: true
-    });
-
-    Object.defineProperty(Carousel.prototype, "itemTemplate", {
-        get: function () {
-            return this._getValue(Carousel.itemTemplateProperty);
-        },
-        set: function (value) {
-            this._setValue(Carousel.itemTemplateProperty, value);
-        },
-        enumerable: true,
-        configurable: true
-    });
-
-    Object.defineProperty(Carousel.prototype, "pageWidth", {
-        get: function () {
-            return Platform.screen.mainScreen.widthDIPs;
-        },
-        enumerable: true,
-        configurable: true
-    });
-
-    Object.defineProperty(Carousel.prototype, "showIndicator", {
-        get: function () {
-            return this._getValue(Carousel.showIndicatorProperty);
-        },
-        set: function (value) {
-            this._setValue(Carousel.showIndicatorProperty, value);
-        },
-        enumerable: true,
-        configurable: true
-    });
-
     Object.defineProperty(Carousel.prototype, "finite", {
-        get: function () {
-            return this._getValue(Carousel.finiteProperty);
-        },
         set: function (value) {
-            this._setValue(Carousel.finiteProperty, value);
+            console.log("'finite' property not available for Android");
         },
         enumerable: true,
         configurable: true
     });
+    Carousel.pageChangedEvent = "pageChanged";
+    Carousel.pageTappedEvent = "pageTapped";
+    Carousel.pageScrollingEvent = "pageScrolling";
+    Carousel.pageScrollStateChangedEvent = "pageScrolled";
+    Carousel.itemsProperty = new dObservable.Property("items", "Carousel", new proxy.PropertyMetadata(undefined, dObservable.PropertyMetadataSettings.AffectsLayout, onItemsPropertyChanged));
+    Carousel.itemTemplateProperty = new dObservable.Property("itemTemplate", "Carousel", new proxy.PropertyMetadata(undefined, dObservable.PropertyMetadataSettings.AffectsLayout, onItemTemplatePropertyChanged));
     return Carousel;
 }(absolute_layout.AbsoluteLayout));
-
-Carousel.pageChangedEvent = "pageChanged";
-Carousel.pageTappedEvent = "pageTapped";
-Carousel.pageScrollingEvent = "pageScrolling";
-Carousel.pageScrollStateChangedEvent = "pageScrolled";
-
-Carousel.showIndicatorProperty = new viewModule.Property({
-    name: "showIndicator",
-    defaultValue: true,
-    valueChanged: function (target, oldValue, newValue) {
-        target._enableIndicator = newValue;
-    }
-});
-Carousel.itemsProperty = new viewModule.Property({
-    name: "items",
-    defaultValue: undefined,
-    valueChanged: function (target, oldValue, newValue) {
-        target._onItemsPropertyChanged({
-            object: target,
-            oldValue: oldValue,
-            newValue: newValue
-        });
-    }
-});
-Carousel.itemTemplateProperty = new viewModule.Property({
-    name: "itemTemplate",
-    defaultValue: undefined,
-    valueChanged: function (target, oldValue, newValue) {
-        target._onItemTemplatePropertyChanged({
-            object: target,
-            oldValue: oldValue,
-            newValue: newValue
-        });
-    }
-});
-Carousel.finiteProperty = new viewModule.Property({
-    name: "finite",
-    defaultValue: false
-});
-Carousel.indicatorColorProperty = new viewModule.Property({
-    name: "indicatorColor",
-    defaultValue: undefined,
-    valueChanged: function (target, oldValue, newValue) {
-        target._onIndicatorColorChaged({
-            object: target,
-            indicatorColor: newValue
-        });
-    }
-});
-Carousel.indicatorColorUnselectedProperty = new viewModule.Property({
-    name: "indicatorColorUnselected",
-    defaultValue: undefined,
-    valueChanged: function (target, oldValue, newValue) {
-        target._onIndicatorColorChaged({
-            object: target,
-            indicatorColorUnselected: newValue
-        });
-    }
-});
-
 exports.Carousel = Carousel;
-Carousel.showIndicatorProperty.register(Carousel);
-Carousel.itemsProperty.register(Carousel);
-Carousel.itemTemplateProperty.register(Carousel);
-Carousel.finiteProperty.register(Carousel);
-Carousel.indicatorColorProperty.register(Carousel);
-Carousel.indicatorColorUnselectedProperty.register(Carousel);
+
 
 var VIEWS_STATES = "_viewStates";
 var CarouselPagerAdapterClass;
@@ -438,7 +363,6 @@ function ensureCarouselPagerAdapterClass() {
         function CarouselPagerAdapterClassInner(owner) {
             _super.call(this);
             this.owner = owner;
-
             return global.__native(this);
         }
         CarouselPagerAdapterClassInner.prototype.getCount = function () {
@@ -464,17 +388,17 @@ function ensureCarouselPagerAdapterClass() {
                 item.parent.android.removeView(item.android);
             
             if (this[VIEWS_STATES]) {
-                item.nativeView.restoreHierarchyState(this[VIEWS_STATES]);
+                item._nativeView.restoreHierarchyState(this[VIEWS_STATES]);
             }
-            container.addView(item.nativeView, android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT);
-            return item.nativeView;
+            container.addView(item._nativeView, android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT);
+            return item._nativeView;
         };
         CarouselPagerAdapterClassInner.prototype.destroyItem = function (container, index, _object) {
             var item = this.owner.getChildAt(index);
             if(!item)
                 return null;
 
-            var nativeView = item.nativeView;
+            var nativeView = item._nativeView;
             container.removeView(nativeView);
         };
         CarouselPagerAdapterClassInner.prototype.saveState = function () {
