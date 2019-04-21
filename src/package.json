@@ -2,7 +2,7 @@
   "name": "nativescript-carousel",
   "description": "Carousel component for NativeScript (iOS & Android).",
   "main": "index",
-  "version": "4.1.0",
+  "version": "4.0.2",
   "typings": "index.d.ts",
   "nativescript": {
     "platforms": {
@@ -40,8 +40,7 @@
     "prepublishOnly": "npm run build",
     "precommit": "lint-staged",
     "development.setup": "npm run setup && npm link && cd ../demo && npm link nativescript-carousel && cd ../src",
-    "generate.typings.ios": "cd ../demo && TNS_DEBUG_METADATA_PATH=\"$(pwd)/metadata\" tns build ios && TNS_TYPESCRIPT_DECLARATIONS_PATH=\"$(pwd)/typings\" tns build ios && echo 'Now look for your library typings in demo/typings!'",
-    "make-changelog": "cd ../ && github_changelog_generator -u manijak -p nativescript-carousel"
+    "generate.typings.ios": "cd ../demo && TNS_DEBUG_METADATA_PATH=\"$(pwd)/metadata\" tns build ios && TNS_TYPESCRIPT_DECLARATIONS_PATH=\"$(pwd)/typings\" tns build ios && echo 'Now look for your library typings in demo/typings!'"
   },
   "repository": {
     "type": "git",
@@ -77,7 +76,7 @@
     "typescript": "~2.8.2",
     "prettier": "^1.13.7",
     "tns-core-modules": "~4.1.0",
-    "tns-platform-declarations": "~4.2.1",
+    "tns-platform-declarations": "~4.1.0",
     "tslint": "^5.11.0",
     "husky": "^0.14.3",
     "lint-staged": "^7.2.0",
@@ -86,9 +85,9 @@
     "semver": "^5.5.0"
   },
   "lint-staged": {
-		"*.ts, *.js, *.css, *.scss, *.md": [
-			"prettier --write",
-			"git add"
-		]
-	}
+    "*.ts": [
+      "prettier --write",
+      "git add"
+    ]
+  }
 }
