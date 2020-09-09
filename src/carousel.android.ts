@@ -1,5 +1,28 @@
-import { Builder, View, GridLayout, Utils } from '@nativescript/core';
-import { CarouselCommon, CarouselUtil, indicatorAnimationDurationProperty, indicatorAnimationProperty, indicatorColorProperty, indicatorColorUnselectedProperty, indicatorPaddingProperty, indicatorRadiusProperty, Log, selectedPageProperty } from './carousel.common';
+import {
+  Builder,
+  View,
+  GridLayout,
+  Utils
+} from '@nativescript/core';
+
+// import { parse } from 'tns-core-modules/ui/builder';
+// import { View } from 'tns-core-modules/ui/core/view';
+// import { GridLayout } from 'tns-core-modules/ui/layouts/grid-layout';
+// import { isNullOrUndefined, isNumber } from 'tns-core-modules/utils/types';
+// import { layout } from 'tns-core-modules/utils/utils';
+
+import {
+  CarouselCommon,
+  CarouselUtil,
+  indicatorAnimationDurationProperty,
+  indicatorAnimationProperty,
+  indicatorColorProperty,
+  indicatorColorUnselectedProperty,
+  indicatorPaddingProperty,
+  indicatorRadiusProperty,
+  Log,
+  selectedPageProperty
+} from './carousel.common';
 
 const VIEWS_STATES = '_viewStates';
 const PagerNamespace = androidx.viewpager.widget;
@@ -283,6 +306,7 @@ export class Carousel extends CarouselCommon {
   }
 }
 
+@NativeClass()
 class CarouselPagerAdapterClassInner extends PagerNamespace.PagerAdapter {
   private owner: WeakRef<Carousel>;
   constructor(owner: WeakRef<Carousel>) {
